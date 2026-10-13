@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  sellix-trace:
+    build: .
+    container_name: sellix-trace
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=sellix-trace-docker-secret-key-2026
+      - DATABASE_URL=sqlite:///./sellix_trace.db
+      - TOR_CRAWLER_ENABLED=false
+      - AUTHORIZED_INVESTIGATION_FLAG=true
+    restart: unless-stopped
