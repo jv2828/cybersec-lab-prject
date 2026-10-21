@@ -25,6 +25,8 @@ htmlcov/
 *.sqlite
 *.sqlite3
 *.log
+data/uploads/*
+!data/uploads/.gitkeep
 
 # OS & Editor files
 .DS_Store

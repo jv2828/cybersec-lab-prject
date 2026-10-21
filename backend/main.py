@@ -2,13 +2,14 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from contextlib import asynccontextmanager
 
 from backend.app.core.config import settings
 from backend.app.core.database import engine, Base, SessionLocal
 from backend.app.seed.generator import seed_database
 from backend.app.models.models import HiddenService
+from backend.app.pipeline.engine import pipeline_engine
 
 # Routers
 from backend.app.api.auth import router as auth_router
@@ -21,6 +22,9 @@ from backend.app.api.alerts import router as alerts_router
 from backend.app.api.search import router as search_router
 from backend.app.api.stats import router as stats_router
 from backend.app.api.pipeline import router as pipeline_router
+from backend.app.api.evidence import router as evidence_router
+from backend.app.api.export import router as export_router
+from backend.app.api.sources import router as sources_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,6 +38,13 @@ async def lifespan(app: FastAPI):
         print("[Sellix Trace] Initializing deterministic synthetic seed data...")
         seed_database(db)
     db.close()
+
+    # Start autonomous pipeline background worker
+    try:
+        pipeline_engine.start_scheduler()
+    except Exception as e:
+        print(f"[Sellix Trace] Background scheduler notice: {e}")
+
     yield
 
 app = FastAPI(
@@ -63,21 +74,28 @@ app.include_router(alerts_router, prefix=settings.API_V1_STR)
 app.include_router(search_router, prefix=settings.API_V1_STR)
 app.include_router(stats_router, prefix=settings.API_V1_STR)
 app.include_router(pipeline_router, prefix=settings.API_V1_STR)
+app.include_router(evidence_router, prefix=settings.API_V1_STR)
+app.include_router(export_router, prefix=settings.API_V1_STR)
+app.include_router(sources_router, prefix=settings.API_V1_STR)
 
-# Serve landing page at root "/"
+# Root "/" redirects straight into "/app/" (Phase 0 requirement)
 @app.get("/", include_in_schema=False)
-def get_landing_page():
+def root_redirect():
+    return RedirectResponse(url="/app/")
+
+# Keep original landing page available at "/about"
+@app.get("/about", include_in_schema=False)
+def get_about_page():
     landing_path = os.path.join(os.path.dirname(__file__), "..", "index.html")
     if os.path.exists(landing_path):
         return FileResponse(landing_path)
-    return {"message": "Sellix Trace API Online. Access /docs for OpenAPI documentation."}
+    return {"message": "Sellix Trace CTI Platform. Access /docs for API documentation."}
 
 # Serve Vite frontend app if built
 frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 if os.path.exists(frontend_dist):
     @app.get("/app", include_in_schema=False)
     def redirect_app():
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/app/")
 
     app.mount("/app", StaticFiles(directory=frontend_dist, html=True), name="frontend_app")

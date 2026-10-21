@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Layers, ShieldAlert, ArrowRight, ExternalLink, Globe, User, Landmark } from 'lucide-react';
 import { fetchPivots } from '../services/api';
 
+import { PageHeader } from '../components/PageHeader';
+
 interface PivotsViewProps {
   onNavigate: (tab: string, targetId?: string) => void;
 }
@@ -31,15 +33,12 @@ export const PivotsView: React.FC<PivotsViewProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div style={{ padding: '32px 40px', maxWidth: 1400, margin: '0 auto' }}>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>
-          Real-World Identity Pivots &amp; Attribution Cards
-        </h1>
-        <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 4 }}>
-          Explainable corroboration linking darknet personas to clearnet handles, verified exchange deposits, and physical infrastructures.
-        </p>
-      </div>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+      <PageHeader
+        title="Real-World Identity Pivots"
+        description="Corroboration linking darknet personas to suspect real-world individuals, cryptocurrency exchange accounts, and clearnet server operators."
+        helpText="Review high-confidence identity attributions derived from KYC exchange records, PGP email registrations, and timezone cadence alignments."
+      />
 
       {loading ? (
         <div style={{ padding: 40, color: '#94a3b8' }}>Loading identity pivots...</div>

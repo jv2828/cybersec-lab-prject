@@ -12,6 +12,19 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+class Source(Base):
+    __tablename__ = "sources"
+    id = Column(String(64), primary_key=True)
+    name = Column(String(128), nullable=False)
+    type = Column(String(32), default="marketplace")  # marketplace, forum, deepweb, internal
+    reliability_score = Column(Float, default=80.0)  # 0-100
+    trusted = Column(Boolean, default=True)
+    last_scanned_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    actors = relationship("Actor", back_populates="source")
+    services = relationship("HiddenService", back_populates="source")
+    ingest_runs = relationship("IngestRun", back_populates="source")
+
 class Marketplace(Base):
     __tablename__ = "marketplaces"
     id = Column(String(64), primary_key=True)
@@ -30,12 +43,14 @@ class HiddenService(Base):
     onion_address = Column(String(128), unique=True, index=True, nullable=False)
     name = Column(String(128), nullable=False)
     marketplace_id = Column(String(64), ForeignKey("marketplaces.id"), nullable=True)
+    source_id = Column(String(64), ForeignKey("sources.id"), nullable=True)
     status = Column(String(32), default="active")  # active, offline, relocated
     first_seen = Column(DateTime, default=datetime.datetime.utcnow)
     last_seen = Column(DateTime, default=datetime.datetime.utcnow)
     risk_score = Column(Integer, default=50)
 
     marketplace = relationship("Marketplace", back_populates="services")
+    source = relationship("Source", back_populates="services")
     snapshots = relationship("ServiceSnapshot", back_populates="service", cascade="all, delete-orphan")
     findings = relationship("MisconfigFinding", back_populates="service", cascade="all, delete-orphan")
     candidates = relationship("OriginCandidate", back_populates="service", cascade="all, delete-orphan")
@@ -112,6 +127,9 @@ class Actor(Base):
     primary_handle = Column(String(128), index=True, nullable=False)
     risk_score = Column(Integer, default=70)
     category = Column(String(64), default="Vendor")
+    attribution_confidence = Column(Float, default=75.0)  # 0-100, computed
+    last_scan_date = Column(DateTime, default=datetime.datetime.utcnow)
+    source_id = Column(String(64), ForeignKey("sources.id"), nullable=True)
     first_seen = Column(DateTime, default=datetime.datetime.utcnow)
     last_seen = Column(DateTime, default=datetime.datetime.utcnow)
     resolved_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -120,9 +138,11 @@ class Actor(Base):
     stylometry_profile = Column(JSON, default=dict)
     activity_timezone = Column(String(32), default="UTC+1")
 
+    source = relationship("Source", back_populates="actors")
     handles = relationship("Handle", back_populates="actor")
     wallets = relationship("Wallet", back_populates="actor")
     real_world_entities = relationship("RealWorldEntity", back_populates="actor")
+    persona_links = relationship("PersonaLink", back_populates="actor", cascade="all, delete-orphan")
 
 class Handle(Base):
     __tablename__ = "handles"
@@ -140,6 +160,7 @@ class Handle(Base):
 
     actor = relationship("Actor", back_populates="handles")
     marketplace = relationship("Marketplace", back_populates="handles")
+    persona_links = relationship("PersonaLink", back_populates="handle", cascade="all, delete-orphan")
 
 class PGPKey(Base):
     __tablename__ = "pgp_keys"
@@ -256,3 +277,51 @@ class AuditLog(Base):
     target_id = Column(String(128), nullable=False)
     details = Column(Text, default="")
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+class PersonaLink(Base):
+    __tablename__ = "persona_links"
+    id = Column(Integer, primary_key=True, index=True)
+    handle_id = Column(String(64), ForeignKey("handles.id"), nullable=False)
+    actor_id = Column(String(64), ForeignKey("actors.id"), nullable=False)
+    method = Column(String(32), default="stylometry")  # stylometry, pgp, wallet, behaviour, name
+    score = Column(Float, default=85.0)  # 0-100
+    status = Column(String(32), default="PROPOSED")  # PROPOSED, ACCEPTED, REJECTED
+    rationale = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    reviewed_by = Column(String(64), nullable=True)
+
+    handle = relationship("Handle", back_populates="persona_links")
+    actor = relationship("Actor", back_populates="persona_links")
+
+class EvidenceUpload(Base):
+    __tablename__ = "evidence_uploads"
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(256), nullable=False)
+    file_type = Column(String(32), default="txt")
+    sha256 = Column(String(64), index=True, nullable=False)
+    size = Column(Integer, default=0)
+    uploaded_at = Column(DateTime, default=datetime.datetime.utcnow)
+    extracted_json = Column(JSON, default=dict)  # EXIF, text, identifiers
+    signals_json = Column(JSON, default=list)
+    verdict = Column(String(32), default="UNKNOWN")  # TRUSTED_SOURCE, THREAT_ACTOR_LINKED, UNKNOWN
+    trust_score = Column(Float, default=0.0)  # 0-100
+    matched_source_id = Column(String(64), ForeignKey("sources.id"), nullable=True)
+    matched_actor_id = Column(String(64), ForeignKey("actors.id"), nullable=True)
+
+    source = relationship("Source")
+    actor = relationship("Actor")
+
+class IngestRun(Base):
+    __tablename__ = "ingest_runs"
+    id = Column(Integer, primary_key=True, index=True)
+    job_name = Column(String(128), nullable=False)
+    source_id = Column(String(64), ForeignKey("sources.id"), nullable=True)
+    started_at = Column(DateTime, default=datetime.datetime.utcnow)
+    finished_at = Column(DateTime, nullable=True)
+    items_ingested = Column(Integer, default=0)
+    items_rejected = Column(Integer, default=0)
+    status = Column(String(32), default="SUCCESS")  # SUCCESS, FAILED, RUNNING
+    error = Column(Text, nullable=True)
+
+    source = relationship("Source", back_populates="ingest_runs")
+

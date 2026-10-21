@@ -12,14 +12,15 @@ import {
   ZoomIn,
   ZoomOut
 } from 'lucide-react';
-import { fetchGraph, fetchEgoGraph, findPath } from '../services/api';
+import { fetchGraph, fetchEgoGraph, findPath, DateFilter } from '../services/api';
 
 interface ActorGraphViewProps {
   initialNodeId?: string;
   onNavigate: (tab: string, targetId?: string) => void;
+  dateFilter?: DateFilter;
 }
 
-export const ActorGraphView: React.FC<ActorGraphViewProps> = ({ initialNodeId, onNavigate }) => {
+export const ActorGraphView: React.FC<ActorGraphViewProps> = ({ initialNodeId, onNavigate, dateFilter }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
 
@@ -37,7 +38,7 @@ export const ActorGraphView: React.FC<ActorGraphViewProps> = ({ initialNodeId, o
       setLoading(true);
 
       try {
-        const data = await fetchGraph(filterType || undefined, minConfidence, 250);
+        const data = await fetchGraph(filterType || undefined, minConfidence, 250, dateFilter);
 
         const cyElements = [
           ...data.nodes.map((n: any) => ({
@@ -185,7 +186,7 @@ export const ActorGraphView: React.FC<ActorGraphViewProps> = ({ initialNodeId, o
     }
 
     loadGraphData();
-  }, [filterType, minConfidence, initialNodeId]);
+  }, [filterType, minConfidence, initialNodeId, dateFilter]);
 
   const handleEgoExpand = async () => {
     if (!selectedNode || !cyRef.current) return;

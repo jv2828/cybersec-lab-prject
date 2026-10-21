@@ -1,0 +1,17 @@
+{
+  "source_id": "src_shadowleaks",
+  "source_name": "ShadowLeaks Unverified Dump (SYNTHETIC)",
+  "feed_version": "2026.10",
+  "items": [
+    {
+      "type": "unverified_dump",
+      "handle_name": "UnverifiedActor99",
+      "content": "Raw dump paste with unconfirmed credentials and unvalidated claims"
+    },
+    {
+      "type": "unverified_dump",
+      "handle_name": "DumpDropAnon",
+      "content": "Spam leak payload with questionable reliability"
+    }
+  ]
+}

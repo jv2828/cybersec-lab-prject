@@ -113,4 +113,34 @@ class OriginMatcher:
         candidates.sort(key=lambda x: x["confidence_score"], reverse=True)
         return candidates
 
+    def match_service_to_clearnet(self, db, service_id: str, snapshot_data: Dict[str, Any]):
+        """Correlates a service snapshot against all clearnet hosts and writes OriginCandidate rows."""
+        from backend.app.models.models import OriginCandidate, ClearnetHost
+        from backend.app.graph.graph_store import graph_store
+        import datetime
+
+        clearnet_hosts = db.query(ClearnetHost).all()
+        candidates = self.correlate(snapshot_data, clearnet_hosts)
+        created = []
+        for c in candidates:
+            existing = db.query(OriginCandidate).filter(
+                OriginCandidate.service_id == service_id,
+                OriginCandidate.clearnet_host_id == c["clearnet_host_id"]
+            ).first()
+            if not existing:
+                oc = OriginCandidate(
+                    service_id=service_id,
+                    clearnet_host_id=c["clearnet_host_id"],
+                    confidence_score=c["confidence_score"],
+                    match_matrix=c["match_matrix"],
+                    rationale=c["rationale"],
+                    status="PROPOSED",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+                db.add(oc)
+                created.append(oc)
+                if c["confidence_score"] >= 70:
+                    graph_store.add_edge(service_id, c["clearnet_host_id"], "ORIGIN_MATCH", confidence=c["confidence_score"])
+        return created
+
 origin_matcher = OriginMatcher()

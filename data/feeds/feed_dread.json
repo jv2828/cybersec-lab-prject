@@ -1,0 +1,26 @@
+{
+  "source_id": "src_dread",
+  "source_name": "Dread Forum Intel (SYNTHETIC)",
+  "feed_version": "2026.10",
+  "items": [
+    {
+      "type": "forum_post",
+      "handle_name": "DreadMod_Sentinel",
+      "marketplace_id": "mkt_dreadnexus",
+      "pgp_fingerprint": "B2C3D4E5F60718293A4B5C6D7E8F90A1B2C3D4E5",
+      "wallet_address": "bc1q882syntheticwalletdread8192301924192412",
+      "listing_sample": "Official escrow policy notice: all vendor disputes handled via signed PGP correspondence only."
+    },
+    {
+      "type": "hidden_service_snapshot",
+      "onion_address": "dreadnexus3mk991abcde234567890fghijklmnop1234567890.onion",
+      "service_name": "Dread Board Nexus [SYNTHETIC]",
+      "banner": "nginx/1.22.1",
+      "leaked_ips": ["192.0.2.78"],
+      "headers": {
+        "Server": "nginx/1.22.1",
+        "X-Powered-By": "PHP/8.1.18"
+      }
+    }
+  ]
+}

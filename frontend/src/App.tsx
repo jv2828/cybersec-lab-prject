@@ -2,19 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { SearchModal } from './components/SearchModal';
 import { Dashboard } from './pages/Dashboard';
+import { VerifyEvidenceView } from './pages/VerifyEvidenceView';
 import { ServicesView } from './pages/ServicesView';
-import { ActorGraphView } from './pages/ActorGraphView';
 import { ActorProfileView } from './pages/ActorProfileView';
+import { ExportView } from './pages/ExportView';
 import { PivotsView } from './pages/PivotsView';
 import { CasesView } from './pages/CasesView';
 import { PipelineView } from './pages/PipelineView';
-import { fetchAlerts } from './services/api';
+import { fetchAlerts, DateFilter } from './services/api';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [targetEntityId, setTargetEntityId] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [unreadAlertsCount, setUnreadAlertsCount] = useState<number>(0);
+
+  // Global Timeline Date Filter state
+  const [dateFilter, setDateFilter] = useState<DateFilter & { preset: string }>({
+    preset: 'all',
+    date_from: undefined,
+    date_to: undefined
+  });
 
   useEffect(() => {
     async function loadAlertsCount() {
@@ -51,13 +59,15 @@ export const App: React.FC = () => {
   const renderCurrentView = () => {
     switch (currentTab) {
       case 'dashboard':
-        return <Dashboard onNavigate={handleNavigate} />;
-      case 'services':
-        return <ServicesView initialServiceId={targetEntityId} onNavigate={handleNavigate} />;
-      case 'graph':
-        return <ActorGraphView initialNodeId={targetEntityId} onNavigate={handleNavigate} />;
+        return <Dashboard onNavigate={handleNavigate} dateFilter={dateFilter} />;
+      case 'verify':
+        return <VerifyEvidenceView onNavigate={handleNavigate} dateFilter={dateFilter} />;
       case 'actors':
-        return <ActorProfileView initialActorId={targetEntityId} onNavigate={handleNavigate} />;
+        return <ActorProfileView initialActorId={targetEntityId} onNavigate={handleNavigate} dateFilter={dateFilter} />;
+      case 'services':
+        return <ServicesView initialServiceId={targetEntityId} onNavigate={handleNavigate} dateFilter={dateFilter} />;
+      case 'export':
+        return <ExportView dateFilter={dateFilter} />;
       case 'pivots':
         return <PivotsView onNavigate={handleNavigate} />;
       case 'cases':
@@ -65,7 +75,7 @@ export const App: React.FC = () => {
       case 'pipeline':
         return <PipelineView />;
       default:
-        return <Dashboard onNavigate={handleNavigate} />;
+        return <Dashboard onNavigate={handleNavigate} dateFilter={dateFilter} />;
     }
   };
 
@@ -77,6 +87,8 @@ export const App: React.FC = () => {
           setTargetEntityId('');
           setCurrentTab(tab);
         }}
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
         openSearch={() => setIsSearchOpen(true)}
         unreadAlertsCount={unreadAlertsCount}
       />

@@ -1,0 +1,26 @@
+{
+  "source_id": "src_alphabay",
+  "source_name": "AlphaBay Market (SYNTHETIC)",
+  "feed_version": "2026.10",
+  "items": [
+    {
+      "type": "hidden_service_snapshot",
+      "onion_address": "alphabayreborn7x991abcde234567890fghijklmnop12345678.onion",
+      "service_name": "AlphaBay Escrow Gateway [SYNTHETIC]",
+      "banner": "Apache/2.4.52 (Ubuntu)",
+      "leaked_ips": ["198.51.100.44"],
+      "headers": {
+        "Server": "Apache/2.4.52 (Ubuntu)",
+        "X-Backend-Node": "origin-fr-proxy44"
+      }
+    },
+    {
+      "type": "handle_listing",
+      "handle_name": "ShadowVendor_V2",
+      "marketplace_id": "mkt_alphabay",
+      "pgp_fingerprint": "A1B2C3D4E5F60718293A4B5C6D7E8F90A1B2C3D4",
+      "wallet_address": "bc1q991syntheticwalletalpha4491823481234891",
+      "listing_sample": "Vendor dispatch escrow automated PGP order tracking fast delivery."
+    }
+  ]
+}

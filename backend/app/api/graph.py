@@ -16,6 +16,8 @@ def get_graph(
     node_type: Optional[str] = None,
     min_confidence: Optional[int] = 0,
     max_nodes: Optional[int] = 300,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     if graph_store.graph.number_of_nodes() == 0:
@@ -24,6 +26,39 @@ def get_graph(
     data = graph_store.get_full_graph_json(max_nodes=max_nodes)
     nodes = data["nodes"]
     edges = data["edges"]
+
+    # Date filter on actor nodes if specified
+    if date_from or date_to:
+        df = None
+        dt = None
+        if date_from:
+            try:
+                df = datetime.datetime.fromisoformat(date_from.replace("Z", "+00:00"))
+            except Exception:
+                pass
+        if date_to:
+            try:
+                dt = datetime.datetime.fromisoformat(date_to.replace("Z", "+00:00"))
+            except Exception:
+                pass
+        
+        # Query actors within date range
+        actor_q = db.query(Actor.id)
+        if df:
+            actor_q = actor_q.filter(Actor.last_seen >= df)
+        if dt:
+            actor_q = actor_q.filter(Actor.first_seen <= dt)
+        valid_actor_ids = {a[0] for a in actor_q.all()}
+        
+        # Keep nodes associated with valid actors or structural nodes
+        filtered_nodes = []
+        for n in nodes:
+            if n["type"] == "ACTOR" and n["id"] not in valid_actor_ids:
+                continue
+            filtered_nodes.append(n)
+        nodes = filtered_nodes
+        valid_node_ids = {n["id"] for n in nodes}
+        edges = [e for e in edges if e["source"] in valid_node_ids and e["target"] in valid_node_ids]
 
     if node_type:
         type_upper = node_type.upper()

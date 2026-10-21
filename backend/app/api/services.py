@@ -15,13 +15,29 @@ def list_hidden_services(
     marketplace_id: Optional[str] = None,
     min_risk: Optional[int] = 0,
     has_origin_match: Optional[bool] = False,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(HiddenService)
-    if marketplace_id:
+    if marketplace_id and marketplace_id != "ALL":
         query = query.filter(HiddenService.marketplace_id == marketplace_id)
     if min_risk:
         query = query.filter(HiddenService.risk_score >= min_risk)
+
+    if date_from:
+        try:
+            df = datetime.datetime.fromisoformat(date_from.replace("Z", "+00:00"))
+            query = query.filter(HiddenService.last_seen >= df)
+        except Exception:
+            pass
+
+    if date_to:
+        try:
+            dt = datetime.datetime.fromisoformat(date_to.replace("Z", "+00:00"))
+            query = query.filter(HiddenService.first_seen <= dt)
+        except Exception:
+            pass
 
     services = query.all()
     results = []
@@ -38,6 +54,8 @@ def list_hidden_services(
             onion_address=s.onion_address,
             name=s.name,
             marketplace_id=s.marketplace_id,
+            source_id=s.source_id,
+            source_name=s.source.name if s.source else None,
             status=s.status,
             risk_score=s.risk_score,
             first_seen=s.first_seen,
@@ -109,6 +127,8 @@ def get_hidden_service_detail(service_id: str, db: Session = Depends(get_db)):
         onion_address=service.onion_address,
         name=service.name,
         marketplace_id=service.marketplace_id,
+        source_id=service.source_id,
+        source_name=service.source.name if service.source else None,
         status=service.status,
         risk_score=service.risk_score,
         first_seen=service.first_seen,

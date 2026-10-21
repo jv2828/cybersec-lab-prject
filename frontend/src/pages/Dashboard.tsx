@@ -1,335 +1,381 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Globe, 
-  Users, 
   ShieldCheck, 
-  AlertTriangle, 
-  Server, 
-  ArrowUpRight, 
-  Radio, 
-  ExternalLink,
-  ChevronRight
+  Users, 
+  Globe2, 
+  ArrowRight,
+  Server,
+  Layers,
+  FileSearch,
+  CheckCircle2
 } from 'lucide-react';
-import { fetchStats, fetchAlerts } from '../services/api';
+import { fetchStats, DateFilter } from '../services/api';
+import { PageHeader } from '../components/PageHeader';
 
 interface DashboardProps {
   onNavigate: (tab: string, targetId?: string) => void;
+  dateFilter: DateFilter;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, dateFilter }) => {
   const [stats, setStats] = useState<any>(null);
-  const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true);
+      setError(null);
       try {
-        const [statsData, alertsData] = await Promise.all([fetchStats(), fetchAlerts()]);
+        const statsData = await fetchStats(dateFilter);
         setStats(statsData);
-        setAlerts(alertsData.slice(0, 5));
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        setError(err.message || 'Unable to connect to intelligence API server.');
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, []);
+  }, [dateFilter]);
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
-        Loading intelligence metrics...
+        <div style={{ fontSize: 16, marginBottom: 8, color: '#c084fc' }}>● Fetching live intelligence metrics...</div>
+        <p style={{ fontSize: 13, color: '#64748b' }}>Querying verified actor profiles and hidden services in database.</p>
       </div>
     );
   }
 
-  const kpis = stats.kpis;
-  const severities = stats.severity_breakdown;
+  if (error) {
+    return (
+      <div style={{ padding: 40, maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ padding: 20, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8 }}>
+          <h3 style={{ color: '#ef4444', margin: '0 0 8px 0' }}>Failed to Load Intelligence Metrics</h3>
+          <p style={{ color: '#fca5a5', fontSize: 13 }}>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ marginTop: 12, padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const kpis = stats?.kpis || {
+    monitored_services: 0,
+    active_threat_actors: 0,
+    matched_origins: 0,
+    total_findings: 0
+  };
 
   return (
-    <div style={{ padding: '32px 40px', maxWidth: 1400, margin: '0 auto' }}>
-      {/* Top Banner / Status */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 32
-      }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5, color: '#fff' }}>
-            Threat Intelligence Command
-          </h1>
-          <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 4 }}>
-            Continuous dark web correlation across 6 darknet markets &bull; RFC 5737 synthetic dataset
-          </p>
-        </div>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+      <PageHeader
+        title="Start Here"
+        description="Continuous dark web correlation, origin matching, and evidence deanonymization workspace."
+        helpText="This platform links dark web footprints, Tor hidden service misconfigurations, and cryptocurrency traces to deanonymize threat actors. Choose an action card below to begin your analysis."
+      />
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '8px 16px',
-          background: 'rgba(16, 185, 129, 0.1)',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
-          borderRadius: 9999
-        }}>
-          <span style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: '#10b981',
-            boxShadow: '0 0 8px #10b981'
-          }}></span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#34d399' }}>
-            Passive Feeds Synchronized (100% Non-Intrusive)
-          </span>
-        </div>
-      </div>
-
-      {/* KPI Cards Grid */}
+      {/* THREE LARGE ACTION CARDS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 20,
-        marginBottom: 32
-      }}>
-        <div 
-          className="glass-panel" 
-          style={{ padding: 24, cursor: 'pointer' }}
-          onClick={() => onNavigate('services')}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>SERVICES MONITORED</div>
-            <Globe size={18} color="#a78bfa" />
-          </div>
-          <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', marginTop: 8, fontFamily: 'var(--font-mono)' }}>
-            {kpis.services_monitored}
-          </div>
-          <div style={{ fontSize: 12, color: '#34d399', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span>40 Snapshots Ingested</span>
-            <ArrowUpRight size={13} />
-          </div>
-        </div>
-
-        <div 
-          className="glass-panel" 
-          style={{ padding: 24, cursor: 'pointer' }}
-          onClick={() => onNavigate('actors')}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>RESOLVED ACTORS</div>
-            <Users size={18} color="#38bdf8" />
-          </div>
-          <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', marginTop: 8, fontFamily: 'var(--font-mono)' }}>
-            {kpis.actors_resolved}
-          </div>
-          <div style={{ fontSize: 12, color: '#38bdf8', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span>150+ Handles Consolidated</span>
-            <ArrowUpRight size={13} />
-          </div>
-        </div>
-
-        <div 
-          className="glass-panel" 
-          style={{ padding: 24, cursor: 'pointer' }}
-          onClick={() => onNavigate('services')}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>ORIGIN ATTRIBUTIONS</div>
-            <Server size={18} color="#10b981" />
-          </div>
-          <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', marginTop: 8, fontFamily: 'var(--font-mono)' }}>
-            {kpis.high_confidence_origins}
-          </div>
-          <div style={{ fontSize: 12, color: '#10b981', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span>&ge; 80% Confidence Links</span>
-            <ArrowUpRight size={13} />
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>IDENTIFIED MISCONFIGS</div>
-            <AlertTriangle size={18} color="#f59e0b" />
-          </div>
-          <div style={{ fontSize: 34, fontWeight: 800, color: '#fff', marginTop: 8, fontFamily: 'var(--font-mono)' }}>
-            {kpis.total_findings}
-          </div>
-          <div style={{ fontSize: 12, color: '#f87171', marginTop: 6 }}>
-            {severities.CRITICAL} Critical Leaks Identified
-          </div>
-        </div>
-      </div>
-
-      {/* Middle Row: Severity Matrix & Hosting Infrastructure */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
         gap: 24,
         marginBottom: 32
       }}>
-        {/* Misconfiguration Severity Breakdown */}
-        <div className="glass-panel" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 16 }}>
-            Detector Rule Severities
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                <span style={{ color: '#f87171', fontWeight: 600 }}>CRITICAL (mod_status, phpinfo, TLS cert CN leak)</span>
-                <span style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>{severities.CRITICAL}</span>
-              </div>
-              <div style={{ height: 8, background: '#27272a', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${(severities.CRITICAL / (kpis.total_findings || 1)) * 100}%`, height: '100%', background: '#ef4444' }} />
-              </div>
+        {/* Card A: Verify Evidence */}
+        <div 
+          style={{
+            background: 'linear-gradient(180deg, rgba(124, 58, 237, 0.15) 0%, rgba(20, 20, 22, 0.95) 100%)',
+            border: '2px solid rgba(167, 139, 250, 0.4)',
+            borderRadius: 12,
+            padding: 28,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          <div>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 10,
+              background: '#7c3aed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <ShieldCheck size={26} color="#fff" />
             </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                <span style={{ color: '#fbbf24', fontWeight: 600 }}>HIGH (IP leak, Favicon mmh3 match, Mixed Content)</span>
-                <span style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>{severities.HIGH}</span>
-              </div>
-              <div style={{ height: 8, background: '#27272a', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${(severities.HIGH / (kpis.total_findings || 1)) * 100}%`, height: '100%', background: '#f59e0b' }} />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>
+                Verify a File or Text
+              </h2>
+              <span style={{ fontSize: 10, background: '#10b981', color: '#000', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                HEADLINE
+              </span>
             </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                <span style={{ color: '#38bdf8', fontWeight: 600 }}>MEDIUM (Server Banner, Uptime Skew)</span>
-                <span style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>{severities.MEDIUM}</span>
-              </div>
-              <div style={{ height: 8, background: '#27272a', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${(severities.MEDIUM / (kpis.total_findings || 1)) * 100}%`, height: '100%', background: '#38bdf8' }} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                <span style={{ color: '#94a3b8', fontWeight: 600 }}>LOW / INFO (Header Sequence, ETag)</span>
-                <span style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>{severities.LOW}</span>
-              </div>
-              <div style={{ height: 8, background: '#27272a', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${(severities.LOW / (kpis.total_findings || 1)) * 100}%`, height: '100%', background: '#64748b' }} />
-              </div>
-            </div>
+            <p style={{ fontSize: 13, color: '#cbd5e1', marginTop: 10, lineHeight: 1.5 }}>
+              Upload any report, document, text snippet or photo. The system traces it against all known sources, extracts EXIF/wallets/PGP, and returns an explainable verdict: <strong>Trusted Source</strong>, <strong>Threat Actor Linked</strong>, or <strong>Unknown</strong>.
+            </p>
           </div>
+          <button
+            onClick={() => onNavigate('verify')}
+            style={{
+              marginTop: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '12px 20px',
+              background: '#7c3aed',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+          >
+            <span>Verify Evidence Now</span>
+            <ArrowRight size={16} />
+          </button>
         </div>
 
-        {/* Origin Infrastructure ASNs */}
-        <div className="glass-panel" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 16 }}>
-            Origin Hosting ASNs &amp; Jurisdictions
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-            {Object.entries(stats.asn_distribution).map(([asn, count]: any) => (
-              <div key={asn} style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                padding: '12px 14px',
-                borderRadius: 10,
-                border: '1px solid rgba(255, 255, 255, 0.06)'
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>{asn}</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{count} Indexed Server Nodes</div>
-              </div>
-            ))}
+        {/* Card B: Browse Threat Actors */}
+        <div 
+          style={{
+            background: '#141416',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: 12,
+            padding: 28,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 10,
+              background: 'rgba(167, 139, 250, 0.15)',
+              border: '1px solid rgba(167, 139, 250, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Users size={26} color="#c084fc" />
+            </div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>
+              Browse Threat Actors
+            </h2>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 10, lineHeight: 1.5 }}>
+              Explore consolidated actor profiles, cross-marketplace handle mappings, cryptocurrency wallets, 24-hour behavioural activity histograms, and human-in-the-loop persona migration links.
+            </p>
           </div>
+          <button
+            onClick={() => onNavigate('actors')}
+            style={{
+              marginTop: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '12px 20px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <span>Browse Threat Actors</span>
+            <ArrowRight size={16} />
+          </button>
+        </div>
+
+        {/* Card C: Check Hidden Services */}
+        <div 
+          style={{
+            background: '#141416',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: 12,
+            padding: 28,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 10,
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16
+            }}>
+              <Globe2 size={26} color="#38bdf8" />
+            </div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>
+              Check Hidden Services
+            </h2>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 10, lineHeight: 1.5 }}>
+              Scan Tor onion services for server misconfigurations (exposed server-status, SSL certs, favicon hashes) and match them to clearnet infrastructure to discover likely origin hosts.
+            </p>
+          </div>
+          <button
+            onClick={() => onNavigate('services')}
+            style={{
+              marginTop: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '12px 20px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <span>Check Hidden Services</span>
+            <ArrowRight size={16} />
+          </button>
         </div>
       </div>
 
-      {/* Bottom Row: Top Risky Threat Actors & Live Alerts */}
+      {/* ONE SHORT LINE EXPLAINING WHAT PLATFORM DOES */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1.2fr 1fr',
-        gap: 24
+        background: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 8,
+        padding: '14px 20px',
+        marginBottom: 32,
+        fontSize: 14,
+        color: '#e2e8f0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12
       }}>
-        {/* Top Risky Actors */}
-        <div className="glass-panel" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
-              Highest Risk Threat Actors
-            </h2>
-            <button 
-              onClick={() => onNavigate('actors')} 
-              className="btn-pill btn-glass"
-              style={{ padding: '4px 12px', fontSize: 12 }}
-            >
-              View All 50 &rarr;
-            </button>
+        <CheckCircle2 size={18} color="#10b981" />
+        <span>
+          <strong>Platform Mission:</strong> Sellix Trace continuously correlates passive dark web footprints, detects Tor infrastructure misconfigurations to unmask clearnet origin servers, and links rebranded threat actor personas using AI stylometry.
+        </span>
+      </div>
+
+      {/* 4 SIMPLE KPIS FROM REAL DATA */}
+      <div style={{ marginBottom: 16 }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 }}>
+          Live Intelligence Database Metrics
+        </h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 16
+        }}>
+          {/* KPI 1 */}
+          <div 
+            onClick={() => onNavigate('actors')}
+            style={{
+              background: '#141416',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 8,
+              padding: 20,
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#c084fc', marginBottom: 4 }}>
+              {kpis.active_threat_actors}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1' }}>
+              Threat Actors Monitored
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+              Cross-marketplace tracked profiles
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {stats.top_risky_actors.map((actor: any) => (
-              <div
-                key={actor.id}
-                onClick={() => onNavigate('actors', actor.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease'
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)')}
-              >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{actor.handle}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                    {actor.category} &bull; {actor.handles_count} Handles &bull; {actor.wallets_count} Wallets
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className="badge badge-critical" style={{ fontSize: 11 }}>
-                    RISK {actor.risk_score}
-                  </span>
-                  <ChevronRight size={16} color="#64748b" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Alerts Feed */}
-        <div className="glass-panel" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
-              Intelligence Stream Alerts
-            </h2>
-            <button 
-              onClick={() => onNavigate('pipeline')} 
-              className="btn-pill btn-glass"
-              style={{ padding: '4px 12px', fontSize: 12 }}
-            >
-              Monitor &rarr;
-            </button>
+          {/* KPI 2 */}
+          <div 
+            onClick={() => onNavigate('services')}
+            style={{
+              background: '#141416',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 8,
+              padding: 20,
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8', marginBottom: 4 }}>
+              {kpis.monitored_services}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1' }}>
+              Hidden Services Profiled
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+              Tor onion services in index
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {alerts.map((al: any) => (
-              <div
-                key={al.id}
-                style={{
-                  padding: '12px 14px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderRadius: 10
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>{al.title}</span>
-                  <span className={`badge badge-${al.severity.toLowerCase()}`} style={{ fontSize: 10 }}>
-                    {al.severity}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.4 }}>{al.description}</div>
-              </div>
-            ))}
+          {/* KPI 3 */}
+          <div 
+            onClick={() => onNavigate('services')}
+            style={{
+              background: '#141416',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 8,
+              padding: 20,
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#34d399', marginBottom: 4 }}>
+              {kpis.matched_origins}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1' }}>
+              Matched Clearnet Origins
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+              Probable real-world host servers
+            </div>
+          </div>
+
+          {/* KPI 4 */}
+          <div 
+            onClick={() => onNavigate('verify')}
+            style={{
+              background: '#141416',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 8,
+              padding: 20,
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#f59e0b', marginBottom: 4 }}>
+              {kpis.total_findings}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#cbd5e1' }}>
+              Detected Misconfigs & Leads
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+              Exposed banners, certs & status
+            </div>
           </div>
         </div>
       </div>

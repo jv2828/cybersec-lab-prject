@@ -57,6 +57,8 @@ class HiddenServiceSummary(BaseModel):
     onion_address: str
     name: str
     marketplace_id: Optional[str] = None
+    source_id: Optional[str] = None
+    source_name: Optional[str] = None
     status: str
     risk_score: int
     first_seen: datetime.datetime
@@ -69,6 +71,8 @@ class HiddenServiceDetail(BaseModel):
     onion_address: str
     name: str
     marketplace_id: Optional[str] = None
+    source_id: Optional[str] = None
+    source_name: Optional[str] = None
     status: str
     risk_score: int
     first_seen: datetime.datetime
@@ -102,11 +106,85 @@ class GraphData(BaseModel):
     nodes: List[GraphNode]
     edges: List[GraphEdge]
 
+class SourceOut(BaseModel):
+    id: str
+    name: str
+    type: str
+    reliability_score: float
+    trusted: bool
+    last_scanned_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+class PersonaLinkOut(BaseModel):
+    id: int
+    handle_id: str
+    handle_name: Optional[str] = ""
+    actor_id: str
+    method: str
+    score: float
+    status: str
+    rationale: Dict[str, Any]
+    created_at: datetime.datetime
+    reviewed_by: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class PersonaLinkReview(BaseModel):
+    action: str = Field(..., description="'ACCEPT' or 'REJECT'")
+    notes: Optional[str] = ""
+
+class EvidenceSignal(BaseModel):
+    name: str
+    weight: int
+    matched_value: str
+    reason: str
+
+class EvidenceUploadOut(BaseModel):
+    id: int
+    filename: str
+    file_type: str
+    sha256: str
+    size: int
+    uploaded_at: datetime.datetime
+    extracted_json: Dict[str, Any]
+    signals_json: List[Dict[str, Any]]
+    verdict: str  # TRUSTED_SOURCE, THREAT_ACTOR_LINKED, UNKNOWN
+    trust_score: float
+    matched_source_id: Optional[str] = None
+    matched_actor_id: Optional[str] = None
+    matched_source_name: Optional[str] = None
+    matched_actor_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class IngestRunOut(BaseModel):
+    id: int
+    job_name: str
+    source_id: Optional[str] = None
+    source_name: Optional[str] = None
+    started_at: datetime.datetime
+    finished_at: Optional[datetime.datetime] = None
+    items_ingested: int
+    items_rejected: int
+    status: str
+    error: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 class ActorProfileOut(BaseModel):
     id: str
     primary_handle: str
     risk_score: int
     category: str
+    attribution_confidence: float = 75.0
+    last_scan_date: datetime.datetime
+    source_id: Optional[str] = None
+    source_name: Optional[str] = None
     first_seen: datetime.datetime
     last_seen: datetime.datetime
     notes: str
@@ -117,6 +195,9 @@ class ActorProfileOut(BaseModel):
     real_world_entities: List[Dict[str, Any]]
     trust_links_count: int
     stylometry_summary: Dict[str, Any]
+    behavioural_profile: Optional[Dict[str, Any]] = None
+    suggested_links: Optional[List[PersonaLinkOut]] = []
+    attribution_breakdown: Optional[Dict[str, Any]] = None
 
 class MergeActorRequest(BaseModel):
     source_actor_id: str
